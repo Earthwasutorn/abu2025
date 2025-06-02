@@ -1,0 +1,81 @@
+-------------------------------------------------------------------
+sudo apt update
+sudo apt full-upgrade
+sudo apt install joystick
+sudo reboot
+-------------------------------------------------------------------
+-ตรวจสอบจอย
+ls /dev/input/js*
+-ทดสอบจอย
+jstest /dev/input/js0
+-วิธีเช็คว่า Arduino เชื่อมต่อพอร์ตไหนบน Raspberry Pi
+ls /dev/ttyACM* หรือ dmesg | grep tty
+-สร้างไฟล์ C
+nano main.c
+-คอมไพล์ไฟล์ C
+cc -o main main.c -lm
+-รันโปรแกรม
+sudo ./main
+-------------------------------------------------------------------
+cd /home/pi-3/project-robot
+
+cc -o main main.c -lm
+sudo ./main
+
+cc -o rebound rebound.c -lm
+sudo ./rebound
+
+cc -o shoot shoot.c -lm
+sudo ./shoot
+-------------------------------------------------------------------
+# รันไฟล์ อัตโนมัติเมื่อเปิดเครื่อง (boot)
+
+-ขั้นตอนที่ 1: คอมไพล์ ให้เป็น executable main.c
+cd /home/pi-4/project-robot
+cc -o main main.c -lm
+
+-ขั้นตอนที่ 2: สร้าง Systemd service ให้รัน อัตโนมัติ main
+    สร้างไฟล์ service:
+sudo nano /etc/systemd/system/project-robot.service
+
+    วางเนื้อหาด้านล่างลงไป:
+[Unit]
+Description=Run Project Robot on Boot
+After=network.target
+
+[Service]
+ExecStart=/home/pi-4/project-robot/rebound
+WorkingDirectory=/home/pi-4/project-robot
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+User=pi-4
+
+[Install]
+WantedBy=multi-user.target
+
+-ขั้นตอนที่ 3: เปิดใช้งาน Service
+sudo systemctl daemon-reexec
+sudo systemctl daemon-reload
+    การเปิดใช้งาน:
+sudo systemctl enable project-robot.service
+sudo systemctl start project-robot.service
+
+    ตรวจสอบว่าโปรแกรมรันแล้ว:
+sudo systemctl status project-robot.service
+
+-อัปเดตหรือแก้โค้ดในภายหลัง
+cd /home/pi-4/project-robot
+cc -o main main.c -lm
+sudo systemctl restart project-robot.service
+
+-หยุดรันไฟล์ main อัตโนมัติ (ปิด systemd service)
+    คำสั่งนี้จะหยุดไม่ให้รันอัตโนมัติในครั้งถัดไปที่บูต:
+sudo systemctl disable project-robot.service
+
+-หยุด service ที่กำลังรันอยู่ในตอนนี้
+    คำสั่งนี้จะหยุดการทำงานของ main ทันทีในขณะนั้น:
+sudo systemctl stop project-robot.service
+
+-ตรวจสอบสถานะ (ว่าไม่รันแล้ว)
+sudo systemctl status project-robot.service
